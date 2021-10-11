@@ -58,9 +58,12 @@ static struct {
 	{ CONSTELLATION_PACKET_OPCODE_DEBUG,		  verify_debug,			 sizeof (ConstellationPacketDebug),  true  },
 	{ CONSTELLATION_PACKET_OPCODE_ROT,   			verify_rot, 		   sizeof (ConstellationPacketRot),		 false },
 	{ CONSTELLATION_PACKET_OPCODE_TRANS,			verify_trans,			 sizeof (ConstellationPacketTrans),	 false },
-	{ CONSTELLATION_PACKET_OPCODE_SENSE,			verify_sense,			 sizeof (ConstellationPacketSense),	 true  },
+	{ CONSTELLATION_PACKET_OPCODE_SENSE,			NULL,							 sizeof (ConstellationPacketHeader), false },
+	{ CONSTELLATION_PACKET_OPCODE_SENSE_RESP,	verify_sense,			 sizeof (ConstellationPacketSense),	 true  },
 	{ CONSTELLATION_PACKET_OPCODE_TELMU,		  NULL,							 sizeof (ConstellationPacketHeader), false },
-	{ CONSTELLATION_PACKET_OPCODE_TELMU_RESP, verify_telmu_resp, sizeof (ConstellationPacketTelmu),  false }
+	{ CONSTELLATION_PACKET_OPCODE_TELMU_RESP, verify_telmu_resp, sizeof (ConstellationPacketTelmu),  false },
+	{ CONSTELLATION_PACKET_OPCODE_IGNITE, 		NULL,							 sizeof (ConstellationPacketHeader), false },
+	{ CONSTELLATION_PACKET_OPCODE_ABORT, 			NULL,							 sizeof (ConstellationPacketHeader), false }
 };
 
 bool constellation_packet_header_verify(ConstellationPacketHeader* hdr) {

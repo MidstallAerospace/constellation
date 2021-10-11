@@ -17,9 +17,12 @@
 #define CONSTELLATION_PACKET_OPCODE_ROT 3
 #define CONSTELLATION_PACKET_OPCODE_TRANS 4
 #define CONSTELLATION_PACKET_OPCODE_SENSE 5
-#define CONSTELLATION_PACKET_OPCODE_TELMU 6
-#define CONSTELLATION_PACKET_OPCODE_TELMU_RESP 7
-#define CONSTELLATION_PACKET_N_OPCODE 8
+#define CONSTELLATION_PACKET_OPCODE_SENSE_RESP 6
+#define CONSTELLATION_PACKET_OPCODE_TELMU 7
+#define CONSTELLATION_PACKET_OPCODE_TELMU_RESP 8
+#define CONSTELLATION_PACKET_OPCODE_IGNITE 9
+#define CONSTELLATION_PACKET_OPCODE_ABORT 10
+#define CONSTELLATION_PACKET_N_OPCODE 11
 
 #define CONSTELLATION_PACKET_LVL_INFO 0
 #define CONSTELLATION_PACKET_LVL_DEBU 1
@@ -52,6 +55,7 @@ typedef struct {
 typedef struct {
 	ConstellationPacketHeader hdr;
 
+	uint8_t stages;
 	double pos[3];
 	double mass;
 } ConstellationPacketInit;
@@ -120,7 +124,7 @@ typedef struct {
   uint8_t stage;
   double velocity;
   double alt;
-  double trottle;
+  double throttle;
 } ConstellationPacketTelmu;
 
 bool constellation_packet_header_verify(ConstellationPacketHeader* hdr);
