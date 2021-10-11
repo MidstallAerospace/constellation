@@ -1,0 +1,2 @@
+option('build_sim_ksp', type: 'boolean', value: false, description: 'Build the KSP simulator')
+option('ksp_data_path', type: 'string', value: '', description: 'Path to Kerbal Space Program\'s Data Directory')

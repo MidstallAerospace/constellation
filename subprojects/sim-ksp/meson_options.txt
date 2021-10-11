@@ -1,0 +1,1 @@
+option('ksp_data_path', type: 'string', value: '', description: 'Path to Kerbal Space Program\'s Data Directory')
