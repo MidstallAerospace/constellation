@@ -11,40 +11,13 @@ static bool verify_debug(ConstellationPacket* pkt) {
 	return true;
 }
 
-static bool verify_rot(ConstellationPacket* pkt) {
-	ConstellationPacketRot* rot = (ConstellationPacketRot*)pkt;
-
-	if (rot->source > CONSTELLATION_PACKET_N_CONTROL_SRC) return false;
-
-	if (rot->enable_x == false && (rot->lock_x || rot->cont_x || rot->x != 0)) return false;
-	if (rot->enable_y == false && (rot->lock_y || rot->cont_y || rot->y != 0)) return false;
-	if (rot->enable_z == false && (rot->lock_z || rot->cont_z || rot->z != 0)) return false;
-	return true;
-}
-
-static bool verify_trans(ConstellationPacket* pkt) {
-	ConstellationPacketTrans* rot = (ConstellationPacketTrans*)pkt;
-
-	if (rot->source > CONSTELLATION_PACKET_N_CONTROL_SRC) return false;
-
-	if (rot->enable_x == false && rot->x != 0) return false;
-	if (rot->enable_y == false && rot->y != 0) return false;
-	if (rot->enable_z == false && rot->z != 0) return false;
-	return true;
-}
-
-static bool verify_sense(ConstellationPacket* pkt) {
-	ConstellationPacketSense* sense = (ConstellationPacketSense*)pkt;
-
-	if (sense->index > CONSTELLATION_PACKET_N_SENSE) return false;
-
-	uint16_t total_length = sizeof (ConstellationPacketSense) + (sizeof (ConstellationPacketSenseData) * sense->count);
-	if (sense->hdr.length != total_length) return false;
-	return true;
-}
-
 static bool verify_telmu_resp(ConstellationPacket* pkt) {
 	return pkt->hdr.source == CONSTELLATION_PACKET_LOC_VEHICLE;
+}
+
+static bool verify_prg(ConstellationPacket* pkt) {
+	ConstellationPacketProg* prog = (ConstellationPacketProg*)pkt;
+	return prog->prg < CONSTELLATION_PACKET_N_PRG;
 }
 
 static struct {
@@ -56,14 +29,11 @@ static struct {
 	{ CONSTELLATION_PACKET_OPCODE_NONE, 			NULL,							 sizeof (ConstellationPacketHeader), false },
 	{ CONSTELLATION_PACKET_OPCODE_INIT,  			NULL,							 sizeof (ConstellationPacketInit),	 false },
 	{ CONSTELLATION_PACKET_OPCODE_DEBUG,		  verify_debug,			 sizeof (ConstellationPacketDebug),  true  },
-	{ CONSTELLATION_PACKET_OPCODE_ROT,   			verify_rot, 		   sizeof (ConstellationPacketRot),		 false },
-	{ CONSTELLATION_PACKET_OPCODE_TRANS,			verify_trans,			 sizeof (ConstellationPacketTrans),	 false },
-	{ CONSTELLATION_PACKET_OPCODE_SENSE,			NULL,							 sizeof (ConstellationPacketHeader), false },
-	{ CONSTELLATION_PACKET_OPCODE_SENSE_RESP,	verify_sense,			 sizeof (ConstellationPacketSense),	 true  },
 	{ CONSTELLATION_PACKET_OPCODE_TELMU,		  NULL,							 sizeof (ConstellationPacketHeader), false },
 	{ CONSTELLATION_PACKET_OPCODE_TELMU_RESP, verify_telmu_resp, sizeof (ConstellationPacketTelmu),  false },
 	{ CONSTELLATION_PACKET_OPCODE_IGNITE, 		NULL,							 sizeof (ConstellationPacketHeader), false },
-	{ CONSTELLATION_PACKET_OPCODE_ABORT, 			NULL,							 sizeof (ConstellationPacketHeader), false }
+	{ CONSTELLATION_PACKET_OPCODE_ABORT, 			NULL,							 sizeof (ConstellationPacketHeader), false },
+	{ CONSTELLATION_PACKET_OPCODE_PROG,				verify_prg, 			 sizeof (ConstellationPacketProg),		 false }
 };
 
 bool constellation_packet_header_verify(ConstellationPacketHeader* hdr) {

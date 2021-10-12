@@ -1,7 +1,10 @@
 project('constellation', 'c', license: 'GPL-3.0-only', version: '0.1.0-prealpha')
 
 libnet = subproject('libnet')
-libnet_dep = libnet.get_variable('cnet_dep')
+libnet_dep = libnet.get_variable('libnet_dep')
+
+libcommon = subproject('libcommon')
+libcommon_dep = libcommon.get_variable('libcommon_dep')
 
 libvehicle = subproject('libvehicle')
 libvehicle_dep = libvehicle.get_variable('libvehicle_dep')

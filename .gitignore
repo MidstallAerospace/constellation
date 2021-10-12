@@ -13,4 +13,3 @@ meson-uninstalled
 *.gmo
 *.dll
 build.h
-*.h

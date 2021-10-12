@@ -14,15 +14,12 @@
 #define CONSTELLATION_PACKET_OPCODE_NONE 0
 #define CONSTELLATION_PACKET_OPCODE_INIT 1
 #define CONSTELLATION_PACKET_OPCODE_DEBUG 2
-#define CONSTELLATION_PACKET_OPCODE_ROT 3
-#define CONSTELLATION_PACKET_OPCODE_TRANS 4
-#define CONSTELLATION_PACKET_OPCODE_SENSE 5
-#define CONSTELLATION_PACKET_OPCODE_SENSE_RESP 6
-#define CONSTELLATION_PACKET_OPCODE_TELMU 7
-#define CONSTELLATION_PACKET_OPCODE_TELMU_RESP 8
-#define CONSTELLATION_PACKET_OPCODE_IGNITE 9
-#define CONSTELLATION_PACKET_OPCODE_ABORT 10
-#define CONSTELLATION_PACKET_N_OPCODE 11
+#define CONSTELLATION_PACKET_OPCODE_TELMU 3
+#define CONSTELLATION_PACKET_OPCODE_TELMU_RESP 4
+#define CONSTELLATION_PACKET_OPCODE_IGNITE 5
+#define CONSTELLATION_PACKET_OPCODE_ABORT 6
+#define CONSTELLATION_PACKET_OPCODE_PROG 7
+#define CONSTELLATION_PACKET_N_OPCODE 8
 
 #define CONSTELLATION_PACKET_LVL_INFO 0
 #define CONSTELLATION_PACKET_LVL_DEBU 1
@@ -30,14 +27,10 @@
 #define CONSTELLATION_PACKET_LVL_ERRO 3
 #define CONSTELLATION_PACKET_N_LVL 4
 
-#define CONSTELLATION_PACKET_CONTROL_SRC_NONE 0
-#define CONSTELLATION_PACKET_CONTROL_SRC_ENG 1
-#define CONSTELLATION_PACKET_CONTROL_SRC_RCS 2
-#define CONSTELLATION_PACKET_N_CONTROL_SRC 3
-
-#define CONSTELLATION_PACKET_SENSE_NONE 0
-#define CONSTELLATION_PACKET_SENSE_CORDS 1
-#define CONSTELLATION_PACKET_N_SENSE 2
+#define CONSTELLATION_PACKET_PRG_NONE 0
+#define CONSTELLATION_PACKET_PRG_ORBIT 1
+#define CONSTELLATION_PACKET_PRG_LAND 2
+#define CONSTELLATION_PACKET_N_PRG 2
 
 typedef struct {
 	uint16_t magic;
@@ -48,16 +41,16 @@ typedef struct {
 } ConstellationPacketHeader;
 
 typedef struct {
-  ConstellationPacketHeader hdr;
-  void* data;
+	ConstellationPacketHeader hdr;
+	void* data;
 } ConstellationPacket;
 
 typedef struct {
 	ConstellationPacketHeader hdr;
 
-	uint8_t stages;
+	uint8_t num_stages;
+	uint8_t curr_stage;
 	double pos[3];
-	double mass;
 } ConstellationPacketInit;
 
 typedef struct {
@@ -71,61 +64,20 @@ typedef struct {
 typedef struct {
 	ConstellationPacketHeader hdr;
 
-  uint8_t source:3;
-
-	double x;
-	double y;
-	double z;
-
-	bool lock_x:1;
-	bool lock_y:1;
-	bool lock_z:1;
-
-	bool cont_x:1;
-	bool cont_y:1;
-	bool cont_z:1;
-
-	bool enable_x:1;
-	bool enable_y:1;
-	bool enable_z:1;
-} ConstellationPacketRot;
+	uint8_t stage;
+	double velocity;
+	double alt;
+	double throttle;
+} ConstellationPacketTelmu;
 
 typedef struct {
 	ConstellationPacketHeader hdr;
 
-  uint8_t source:3;
+	uint8_t prg;
 
-	double x;
-	double y;
-	double z;
-
-	bool enable_x:1;
-	bool enable_y:1;
-	bool enable_z:1;
-} ConstellationPacketTrans;
-
-typedef union {
-  uint32_t integer;
-  double number;
-  bool boolean:1;
-} ConstellationPacketSenseData;
-
-typedef struct {
-  ConstellationPacketHeader hdr;
-
-  uint8_t index;
-  uint8_t count;
-  ConstellationPacketSenseData data[];
-} ConstellationPacketSense;
-
-typedef struct {
-  ConstellationPacketHeader hdr;
-
-  uint8_t stage;
-  double velocity;
-  double alt;
-  double throttle;
-} ConstellationPacketTelmu;
+	uint16_t data_int[3];
+	double data_dbl[3];
+} ConstellationPacketProg;
 
 bool constellation_packet_header_verify(ConstellationPacketHeader* hdr);
 bool constellation_packet_verify(ConstellationPacket* pkt);
