@@ -1,46 +1,9 @@
 #include <constellation/net/vehicle.h>
-#include <constellation/common.h>
 #include <constellation/vehicle.h>
 #include <math.h>
-#include <pthread.h>
-#include <stdbool.h>
 #include <stdlib.h>
-
-struct packet_queue {
-	ConstellationPacket* pkt;
-	struct packet_queue* next;
-};
-
-struct _ConstellationVehicle {
-	ConstellationVehicleFuncs funcs;
-
-	ConstellationEvent* ev_stage;
-	ConstellationEvent* ev_ignite;
-	ConstellationEvent* ev_throttle;
-	ConstellationEvent* ev_abort;
-
-	void* priv;
-
-	struct packet_queue* send_queue;
-	uint32_t recv_failed_count;
-	uint32_t total_transmit;
-	uint32_t total_recv;
-
-	pthread_t thread_recv;
-	pthread_t thread_transmit;
-
-	bool ignite:1;
-
-	ConstellationStageConfiguration curr_stage;
-
-	uint8_t num_stages;
-	uint8_t stage;
-	double start_pos[3];
-
-	double vel;
-	double alt;
-	double throttle;
-};
+#include "program-private.h"
+#include "vehicle-private.h"
 
 static void* transmit_thread(void* data) {
 	ConstellationVehicle* vehicle = (ConstellationVehicle*)data;
@@ -53,6 +16,12 @@ static void* recv_thread(void* data) {
 	ConstellationVehicle* vehicle = (ConstellationVehicle*)data;
 	vehicle->total_recv = 0;
 	while (vehicle->ignite) vehicle->total_recv = constellation_vehicle_handle_receive(vehicle);
+	return NULL;
+}
+
+static void* prog_thread(void* data) {
+	ConstellationVehicle* vehicle = (ConstellationVehicle*)data;
+	while (vehicle->ignite) vehicle->prog_queue = constellation_vehicle_execute_program(vehicle, vehicle->prog_queue);
 	return NULL;
 }
 
@@ -90,6 +59,9 @@ ConstellationVehicle* constellation_vehicle_new(ConstellationVehicleFuncs funcs,
 		vehicle->total_recv = 0;
 
 		vehicle->ignite = false;
+		vehicle->ignite_time = 0;
+
+		vehicle->prog_queue = NULL;
 
 		vehicle->curr_stage.mass = 0.0;
 		vehicle->curr_stage.dry_mass = 0.0;
@@ -102,16 +74,15 @@ ConstellationVehicle* constellation_vehicle_new(ConstellationVehicleFuncs funcs,
 		vehicle->vel = 0.0;
 		vehicle->alt = 0.0;
 		vehicle->throttle = 0.0;
-
-		pthread_create(&vehicle->thread_transmit, NULL, transmit_thread, vehicle);
-		pthread_create(&vehicle->thread_recv, NULL, recv_thread, vehicle);
 	}
 	return vehicle;
 }
 
 void constellation_vehicle_destroy(ConstellationVehicle* vehicle) {
-	pthread_join(vehicle->thread_recv, NULL);
-	pthread_join(vehicle->thread_transmit, NULL);
+	if (vehicle->ignite) {
+		pthread_join(vehicle->thread_recv, NULL);
+		pthread_join(vehicle->thread_transmit, NULL);
+	}
 
 	constellation_event_destroy(vehicle->ev_stage);
 	constellation_event_destroy(vehicle->ev_ignite);
@@ -119,6 +90,26 @@ void constellation_vehicle_destroy(ConstellationVehicle* vehicle) {
 
 	free(vehicle->priv);
 	free(vehicle);
+}
+
+void constellation_vehicle_event_connect(ConstellationVehicle* vehicle, char* event, ConstellationEventCallback cb) {
+	if (!strcmp(event, "stage")) constellation_event_add(vehicle->ev_stage, cb);
+	else if (!strcmp(event, "ignite")) constellation_event_add(vehicle->ev_ignite, cb);
+	else if (!strcmp(event, "abort")) constellation_event_add(vehicle->ev_abort, cb);
+}
+
+void constellation_vehicle_event_disconnect(ConstellationVehicle* vehicle, char* event, ConstellationEventCallback cb) {
+	if (!strcmp(event, "stage")) constellation_event_remove(vehicle->ev_stage, cb);
+	else if (!strcmp(event, "ignite")) constellation_event_remove(vehicle->ev_ignite, cb);
+	else if (!strcmp(event, "abort")) constellation_event_remove(vehicle->ev_abort, cb);
+}
+
+time_t constellation_vehicle_get_met(ConstellationVehicle* vehicle) {
+	if (vehicle->ignite) {
+		time_t now = time(NULL);
+		return now - vehicle->ignite_time;
+	}
+	return 0;
 }
 
 uint8_t constellation_vehicle_get_stage(ConstellationVehicle* vehicle) {
@@ -152,15 +143,19 @@ void constellation_vehicle_stage(ConstellationVehicle* vehicle) {
 
 void constellation_vehicle_ignite(ConstellationVehicle* vehicle) {
 	if (vehicle->ignite == false) {
-		vehicle->ignite = true;
+		pthread_create(&vehicle->thread_transmit, NULL, transmit_thread, vehicle);
+		pthread_create(&vehicle->thread_recv, NULL, recv_thread, vehicle);
+		pthread_create(&vehicle->thread_prog, NULL, prog_thread, vehicle);
 
+		vehicle->ignite = true;
+		vehicle->ignite_time = time(NULL);
 		if (vehicle->funcs.ignite != NULL) vehicle->funcs.ignite(vehicle, vehicle->priv);
 
 		constellation_event_fire(vehicle->ev_ignite, vehicle);
 	}
 }
 
-void constellation_vehicle_throttle(ConstellationVehicle* vehicle, float value) {
+void constellation_vehicle_throttle(ConstellationVehicle* vehicle, double value) {
 	vehicle->throttle = value;
 	if (vehicle->funcs.throttle != NULL) vehicle->funcs.throttle(vehicle, vehicle->priv);
 }
@@ -169,6 +164,29 @@ void constellation_vehicle_abort(ConstellationVehicle* vehicle) {
 	vehicle->ignite = false;
 	constellation_event_fire(vehicle->ev_abort, vehicle);
 	if (vehicle->funcs.abort != NULL) vehicle->funcs.abort(vehicle, vehicle->priv);
+}
+
+void constellation_vehicle_program(ConstellationVehicle* vehicle, uint8_t prog, ConstellationProgramData data) {
+	struct program_queue* queue = (struct program_queue*)malloc(sizeof (struct program_queue));
+	if (queue == NULL) return;
+
+	queue->prog = prog;
+	queue->data = data;
+	queue->time = 0;
+	queue->executor = vehicle->thread_prog;
+	queue->next = NULL;
+
+	if (vehicle->prog_queue == NULL) vehicle->prog_queue = queue;
+	else {
+		struct program_queue* node = vehicle->prog_queue;
+		while (node != NULL) {
+			if (node->next == NULL) {
+				node->next = queue;
+				break;
+			}
+			node = node->next;
+		}
+	}
 }
 
 size_t constellation_vehicle_transmit_packet_unqueued(ConstellationVehicle* vehicle, ConstellationPacket* pkt) {
@@ -236,6 +254,12 @@ size_t constellation_vehicle_handle_receive(ConstellationVehicle* vehicle) {
 				break;
 			case CONSTELLATION_PACKET_OPCODE_ABORT:
 				constellation_vehicle_ignite(vehicle);
+				break;
+			case CONSTELLATION_PACKET_OPCODE_PROG:
+				{
+					ConstellationPacketProg* prog = (ConstellationPacketProg*)pkt;
+					constellation_vehicle_program(vehicle, prog->prg, prog->data);
+				}
 				break;
 			default:
 				vehicle->recv_failed_count++;

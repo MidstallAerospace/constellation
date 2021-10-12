@@ -1,15 +1,10 @@
 #pragma once
 
 #include <constellation/net/packet.h>
+#include <constellation/common.h>
 #include <constellation/vehicle.h>
 #include <stddef.h>
-
-typedef enum {
-	CONSTELLATION_CONTROL_SOURCE_NONE = 0,
-	CONSTELLATION_CONTROL_SOURCE_ENG,
-	CONSTELLATION_CONTROL_SOURCE_RCS,
-	CONSTELLATION_N_CONTROL_SOURCE
-} ConstellationControlSource;
+#include <time.h>
 
 typedef struct {
 	double impulse;
@@ -33,6 +28,10 @@ typedef struct {
 
 ConstellationVehicle* constellation_vehicle_new(ConstellationVehicleFuncs funcs, void* priv);
 
+void constellation_vehicle_event_connect(ConstellationVehicle* vehicle, char* event, ConstellationEventCallback cb);
+void constellation_vehicle_event_disconnect(ConstellationVehicle* vehicle, char* event, ConstellationEventCallback cb);
+
+time_t constellation_vehicle_get_met(ConstellationVehicle* vehicle);
 uint8_t constellation_vehicle_get_stage(ConstellationVehicle* vehicle);
 double constellation_vehicle_get_velocity(ConstellationVehicle* vehicle);
 double constellation_vehicle_get_alt(ConstellationVehicle* vehicle);
@@ -41,8 +40,9 @@ double constellation_vehicle_get_deltav(ConstellationVehicle* vehicle);
 
 void constellation_vehicle_stage(ConstellationVehicle* vehicle);
 void constellation_vehicle_ignite(ConstellationVehicle* vehicle);
-void constellation_vehicle_throttle(ConstellationVehicle* vehicle, float value);
+void constellation_vehicle_throttle(ConstellationVehicle* vehicle, double value);
 void constellation_vehicle_abort(ConstellationVehicle* vehicle);
+void constellation_vehicle_program(ConstellationVehicle* vehicle, uint8_t prog, ConstellationProgramData data);
 
 size_t constellation_vehicle_transmit_packet_unqueued(ConstellationVehicle* vehicle, ConstellationPacket* pkt);
 ConstellationPacket* constellation_vehicle_receive_packet_unqueued(ConstellationVehicle* vehicle, size_t* size);

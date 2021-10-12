@@ -1,8 +1,10 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
+/** Linked list **/
 struct _ConstellationList;
 
 typedef void (*ConstellationListDestroyCallback)(struct _ConstellationList* self);
@@ -26,6 +28,7 @@ ConstellationList* constellation_list_tail(ConstellationList* head);
 
 size_t constellation_list_length(ConstellationList* list);
 
+/** Event **/
 typedef void (*ConstellationEventCallback)(void* source);
 typedef struct _ConstellationEvent ConstellationEvent;
 
@@ -34,3 +37,17 @@ void constellation_event_destroy(ConstellationEvent* ev);
 void constellation_event_add(ConstellationEvent* ev, ConstellationEventCallback cb);
 void constellation_event_remove(ConstellationEvent* ev, ConstellationEventCallback cb);
 void constellation_event_fire(ConstellationEvent* ev, void* source);
+
+/** Program **/
+typedef union {
+	struct {
+		bool orbit:1;
+		double altitude;
+		double periapsis;
+		double apoapsis;
+	} launch;
+	struct {
+		uint16_t id;
+		uint32_t interval;
+	} timer;
+} ConstellationProgramData;

@@ -9,6 +9,8 @@ static void gen_telmu(ConstellationVehicle* vehicle, ConstellationPacket* pkt) {
 	telmu->velocity = constellation_vehicle_get_velocity(vehicle);
 	telmu->alt = constellation_vehicle_get_alt(vehicle);
 	telmu->throttle = constellation_vehicle_get_throttle(vehicle);
+	telmu->deltav = constellation_vehicle_get_deltav(vehicle);
+	telmu->met = constellation_vehicle_get_met(vehicle);
 }
 
 static struct {

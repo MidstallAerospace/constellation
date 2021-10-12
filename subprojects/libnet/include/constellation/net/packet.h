@@ -1,5 +1,6 @@
 #pragma once
 
+#include <constellation/common.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -28,9 +29,10 @@
 #define CONSTELLATION_PACKET_N_LVL 4
 
 #define CONSTELLATION_PACKET_PRG_NONE 0
-#define CONSTELLATION_PACKET_PRG_ORBIT 1
+#define CONSTELLATION_PACKET_PRG_LAUNCH 1
 #define CONSTELLATION_PACKET_PRG_LAND 2
-#define CONSTELLATION_PACKET_N_PRG 2
+#define CONSTELLATION_PACKET_PRG_TIMER 3
+#define CONSTELLATION_PACKET_N_PRG 4
 
 typedef struct {
 	uint16_t magic;
@@ -68,6 +70,8 @@ typedef struct {
 	double velocity;
 	double alt;
 	double throttle;
+	double deltav;
+	uint32_t met;
 } ConstellationPacketTelmu;
 
 typedef struct {
@@ -75,8 +79,7 @@ typedef struct {
 
 	uint8_t prg;
 
-	uint16_t data_int[3];
-	double data_dbl[3];
+	ConstellationProgramData data;
 } ConstellationPacketProg;
 
 bool constellation_packet_header_verify(ConstellationPacketHeader* hdr);
